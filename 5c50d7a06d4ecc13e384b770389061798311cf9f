@@ -1,0 +1,29 @@
+index.html
+  f399e118ffd1e842 1-773
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "5c50d7a06d4ecc13e384b770389061798311cf9f",
+  "prompts": {
+    "f399e118ffd1e842": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "534a26a4-f83b-4191-8eb6-717c04a5760f",
+        "model": "deepseek-flash"
+      },
+      "human_author": "lihonghao01",
+      "messages": [],
+      "total_additions": 773,
+      "total_deletions": 0,
+      "accepted_lines": 773,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "index.html": {
+          "additions": 773,
+          "accepted_lines": 773
+        }
+      }
+    }
+  }
+}
