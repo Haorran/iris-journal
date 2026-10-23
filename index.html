@@ -1,0 +1,773 @@
+<title>iris-journal</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap">
+<style>
+  /* 设计计划：档案册 —— 松绿/纸感中性色，衬线标题 + 无衬线正文 + 等宽时间戳，单栏宽版 + 两栏分栏 */
+  :root {
+    --bg: #eef0e9;
+    --surface: #f7f8f3;
+    --ink: #1b231e;
+    --muted: #5a665e;
+    --line: #d3d8ce;
+    --accent: #2e6a4e;
+    --accent-ink: #f4f8f2;
+    --mark: #9c6224;
+    --code-bg: #e4e7de;
+    --font-display: "Noto Serif SC", "Songti SC", "STSong", serif;
+    --font-body: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1512;
+      --surface: #161e19;
+      --ink: #e3e8e1;
+      --muted: #98a59c;
+      --line: #28332c;
+      --accent: #8ac7a6;
+      --accent-ink: #10201a;
+      --mark: #d6a25e;
+      --code-bg: #1c2620;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1512;
+    --surface: #161e19;
+    --ink: #e3e8e1;
+    --muted: #98a59c;
+    --line: #28332c;
+    --accent: #8ac7a6;
+    --accent-ink: #10201a;
+    --mark: #d6a25e;
+    --code-bg: #1c2620;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.8;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1060px;
+    margin: 0 auto;
+  }
+
+  a { color: var(--accent); text-underline-offset: 3px; }
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin: 0 0 14px;
+  }
+
+  /* ---------- 页头 ---------- */
+  .masthead {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 56px;
+    align-items: center;
+    padding-block: 72px 64px;
+  }
+  .masthead > * { min-width: 0; }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2.7rem, 6.4vw, 4.4rem);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    margin: 0 0 22px;
+    text-wrap: balance;
+  }
+  .lede {
+    font-size: 1.06rem;
+    color: var(--muted);
+    max-width: 34em;
+    margin: 0 0 30px;
+  }
+  .lede strong { color: var(--ink); font-weight: 500; }
+
+  .install {
+    display: flex;
+    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .cmd {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 9px 14px;
+    font-family: var(--font-mono);
+    font-size: 0.84rem;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .cmd .prompt { color: var(--muted); user-select: none; }
+  .cmd code {
+    font-family: inherit;
+    white-space: nowrap;
+    overflow-x: auto;
+    min-width: 0;
+  }
+  .copy {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--accent-ink);
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    padding: 8px 18px;
+    min-width: 96px;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+  .copy:hover { opacity: 0.86; }
+
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    margin-top: 26px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+  }
+
+  /* ---------- 日志样例卡 ---------- */
+  .journal {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 3px;
+    padding: 26px 28px 30px;
+    box-shadow: 0 18px 40px -30px rgba(20, 30, 24, 0.55);
+  }
+  .journal-head {
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 18px;
+  }
+  .journal-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.15rem;
+    margin: 0 0 8px;
+  }
+  .journal-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    font-family: var(--font-mono);
+    font-size: 0.71rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .win {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: 14px;
+    padding-block: 12px;
+  }
+  .win + .win { border-top: 1px dashed var(--line); }
+  .win-time {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    padding-top: 2px;
+  }
+  .win-time span { display: block; color: var(--muted); font-size: 0.64rem; letter-spacing: 0.06em; }
+  .win p { margin: 0; font-size: 0.85rem; line-height: 1.7; }
+  .win .lbl {
+    display: block;
+    font-size: 0.64rem;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+
+  /* ---------- 通用版块 ---------- */
+  section { padding-block: 60px; border-top: 1px solid var(--line); }
+  .section-head { margin-bottom: 34px; max-width: 42em; }
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.45rem, 2.6vw, 1.85rem);
+    line-height: 1.3;
+    margin: 0 0 10px;
+    text-wrap: balance;
+  }
+  .section-head p { margin: 0; color: var(--muted); font-size: 0.95rem; max-width: 38em; }
+
+  /* 触发短语 */
+  .phrases {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .phrase {
+    font-size: 0.9rem;
+    padding: 9px 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .phrase:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .phrase::before {
+    content: "“";
+    color: var(--accent);
+    margin-right: 2px;
+  }
+  .phrase::after { content: "”"; color: var(--accent); margin-left: 2px; }
+
+  /* 四个写入字段 */
+  .fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 30px;
+  }
+  .field {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 22px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+  .field h3 {
+    font-family: var(--font-display);
+    font-size: 1.02rem;
+    font-weight: 600;
+    margin: 0;
+  }
+  .field .sample {
+    font-size: 0.84rem;
+    color: var(--muted);
+    margin: 0;
+    padding-left: 14px;
+    border-left: 2px solid var(--line);
+    line-height: 1.7;
+  }
+  .field .why {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin: 0;
+    padding-top: 10px;
+    border-top: 1px dashed var(--line);
+  }
+  .field .why b { color: var(--ink); font-weight: 500; }
+
+  /* 追加时间线 */
+  .timeline {
+    list-style: none;
+    margin: 30px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0;
+    border-left: 1px solid var(--line);
+    margin-left: 6px;
+  }
+  .timeline li {
+    position: relative;
+    padding: 0 0 30px 34px;
+  }
+  .timeline li:last-child { padding-bottom: 0; }
+  .timeline li::before {
+    content: "";
+    position: absolute;
+    left: -5px;
+    top: 8px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+  }
+  .stamp {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    margin-bottom: 8px;
+  }
+  .stamp em { font-style: normal; color: var(--muted); letter-spacing: 0.1em; font-size: 0.64rem; }
+  .timeline h3 {
+    font-family: var(--font-display);
+    font-size: 1.02rem;
+    font-weight: 600;
+    margin: 0 0 6px;
+  }
+  .timeline p { margin: 0; font-size: 0.9rem; color: var(--muted); }
+  .timeline p code {
+    font-family: var(--font-mono);
+    font-size: 0.82em;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 2px;
+    color: var(--ink);
+  }
+
+  /* 代码块 */
+  .code-block {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    overflow-x: auto;
+    margin: 24px 0 0;
+  }
+  .code-block pre {
+    margin: 0;
+    padding: 20px 22px;
+    font-family: var(--font-mono);
+    font-size: 0.79rem;
+    line-height: 1.7;
+    color: var(--ink);
+    tab-size: 2;
+  }
+  .code-block .key { color: var(--accent); }
+  .code-block .cmt { color: var(--muted); }
+
+  /* 落盘布局 */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: start;
+  }
+  .two-col > * { min-width: 0; }
+  .two-col h3 {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 14px;
+  }
+
+  /* 表格 */
+  .table-scroll { overflow-x: auto; margin-top: 26px; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.86rem;
+    min-width: 480px;
+  }
+  th, td {
+    text-align: left;
+    padding: 12px 16px 12px 0;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    padding-top: 0;
+  }
+  td:first-child { color: var(--ink); }
+  td code {
+    font-family: var(--font-mono);
+    font-size: 0.84em;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+  .no { color: var(--mark); }
+
+  /* 初始化步骤 */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 30px;
+  }
+  .step {
+    border-top: 2px solid var(--accent);
+    padding-top: 16px;
+    min-width: 0;
+  }
+  .step .tag {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+  }
+  .step h3 {
+    font-family: var(--font-display);
+    font-size: 0.98rem;
+    font-weight: 600;
+    margin: 6px 0 8px;
+  }
+  .step p { margin: 0; font-size: 0.82rem; color: var(--muted); line-height: 1.7; }
+  .step p code {
+    font-family: var(--font-mono);
+    font-size: 0.82em;
+    background: var(--code-bg);
+    padding: 1px 4px;
+    border-radius: 2px;
+    color: var(--ink);
+  }
+
+  /* 边界 */
+  .limits {
+    list-style: none;
+    margin: 26px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 40px;
+  }
+  .limits li {
+    font-size: 0.88rem;
+    color: var(--muted);
+    padding: 11px 0;
+    border-bottom: 1px solid var(--line);
+    min-width: 0;
+  }
+  .limits b { color: var(--ink); font-weight: 500; display: block; font-size: 0.9rem; }
+  .limits li span { display: block; font-size: 0.82rem; }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding-block: 34px 56px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 28px;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  footer a { font-family: var(--font-mono); font-size: 0.78rem; }
+
+  @media (max-width: 900px) {
+    .masthead { grid-template-columns: 1fr; gap: 40px; padding-block: 52px 48px; }
+    .two-col { grid-template-columns: 1fr; gap: 32px; }
+    .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 620px) {
+    .fields { grid-template-columns: 1fr; }
+    .limits { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr; }
+    .win { grid-template-columns: 1fr; gap: 4px; }
+    .win-time { display: flex; gap: 8px; }
+    .win-time span { display: inline; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div>
+      <p class="eyebrow">Claude Code Skill · 会话归档</p>
+      <h1>iris-journal</h1>
+      <p class="lede">
+        会话一结束，上下文就散了。git commit 记得住改了什么，记不住为什么改、踩过哪些坑、下一步做什么。
+        <strong>一句话触发，把这次会话的产出、决策与问题写进当天的日志。</strong>
+      </p>
+      <div class="install">
+        <div class="cmd">
+          <span class="prompt">$</span><code id="install-cmd">npx skills add https://github.com/Haorran/iris-journal</code>
+        </div>
+        <button class="copy" type="button" data-copy="install-cmd">复制</button>
+      </div>
+      <div class="meta-row">
+        <span>本地 Markdown + JSON</span>
+        <span>无外部依赖</span>
+        <span>同日多次追加</span>
+        <span>只写不读</span>
+      </div>
+    </div>
+
+    <div class="journal" aria-label="日志文件样例">
+      <div class="journal-head">
+        <p class="journal-title">工作日志 · 2026-07-06</p>
+        <div class="journal-meta">
+          <span>作者：lihonghao</span>
+          <span>创建：14:30:00</span>
+        </div>
+      </div>
+      <div class="win">
+        <div class="win-time">14:30:00<span>窗口 #1</span></div>
+        <p><span class="lbl">完成的任务</span>修复了 append 模式索引更新 bug</p>
+      </div>
+      <div class="win">
+        <div class="win-time">14:30:00<span>窗口 #1</span></div>
+        <p><span class="lbl">关键决策</span>配置说明从 JSON 注释迁移到 SKILL.md 正文</p>
+      </div>
+      <div class="win">
+        <div class="win-time">18:15:00<span>窗口 #2</span></div>
+        <p><span class="lbl">关键决策</span>在文件末尾追加，而非新建文件</p>
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">触发</p>
+      <h2>会话收尾时说一句就够了</h2>
+      <p>不需要记命令，也不用先想好格式。技能会从当前会话历史里提取内容；首次使用自动初始化，确认用户名和日志目录。</p>
+    </div>
+    <div class="phrases">
+      <span class="phrase">帮我归档今天的工作</span>
+      <span class="phrase">写个今天的 recap</span>
+      <span class="phrase">记录一下刚才解决的那个 bug</span>
+      <span class="phrase">总结今天的变更</span>
+      <span class="phrase">今天工作结束，存档一下</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">写入</p>
+      <h2>按四个字段归档，而不是流水账</h2>
+      <p>每个时间窗口固定四块内容。上下文不足时，技能会逐项追问，不拿「暂无」占位。</p>
+    </div>
+    <div class="fields">
+      <article class="field">
+        <h3>完成的任务</h3>
+        <p class="sample">修复了 append 模式索引更新 bug</p>
+        <p class="why">来源：<b>扫描 Edit / Write / Bash 等工具调用</b>，归纳实际完成的操作。</p>
+      </article>
+      <article class="field">
+        <h3>关键决策</h3>
+        <p class="sample">选择在原文件末尾追加而非新建文件，保持单日日志聚合</p>
+        <p class="why">来源：<b>「因为…所以…」「决定用…而不是…」</b>这类句式，连同原因一起留下。</p>
+      </article>
+      <article class="field">
+        <h3>遇到的问题与解决方案</h3>
+        <p class="sample">JOURNAL_DIR 路径含空格时 JSON 写入失败；改用绝对路径并加引号</p>
+        <p class="why">来源：<b>报错信息、「不行」「失败」「换个方式」</b>等信号，记录问题和解法。</p>
+      </article>
+      <article class="field">
+        <h3>未完成事项 / 下一步计划</h3>
+        <p class="sample">推送 GitHub 并同步平台版本</p>
+        <p class="why">来源：<b>「还差…」「下次…」「TODO」</b>，让下一次会话知道从哪继续。</p>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">追加</p>
+      <h2>一天触发几次，就记几个时间窗口</h2>
+      <p>同一天再次触发时进入 append 模式：读取已有文件、算出窗口序号、在末尾追加新窗口，文件头部不重复。</p>
+    </div>
+    <ol class="timeline">
+      <li>
+        <div class="stamp">14:30:00 <em>窗口 #1</em> <em>create</em></div>
+        <h3>新建当日文件</h3>
+        <p>写入标题、作者、日期，生成第一个时间窗口，并在月度索引里登记这一天。</p>
+      </li>
+      <li>
+        <div class="stamp">18:15:00 <em>窗口 #2</em> <em>append</em></div>
+        <h3>追加第二个窗口</h3>
+        <p>窗口序号 = 已有 <code>windows</code> 数组长度 + 1；索引里的 <code>last_appended_at</code> 同步更新。</p>
+      </li>
+    </ol>
+    <div class="code-block">
+      <pre><span class="cmt">// index/lihonghao-2026-07.json</span>
+{
+  <span class="key">"last_updated"</span>: "2026-07-06T18:15:00+08:00",
+  <span class="key">"journals"</span>: {
+    <span class="key">"lihonghao"</span>: {
+      <span class="key">"2026-07-06"</span>: {
+        <span class="key">"file"</span>: "2026-07/lihonghao-2026-07-06.md",
+        <span class="key">"windows"</span>: [
+          { <span class="key">"index"</span>: 1, <span class="key">"time"</span>: "14:30:00", <span class="key">"summary"</span>: "修复 iris-journal append 模式索引更新 bug..." },
+          { <span class="key">"index"</span>: 2, <span class="key">"time"</span>: "18:15:00", <span class="key">"summary"</span>: "补充 append 模式和索引文件输出样例..." }
+        ]
+      }
+    }
+  }
+}</pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">落盘</p>
+      <h2>文件就是唯一真相源</h2>
+      <p>日志写在项目根目录下，和 CLAUDE.md 同级，随项目一起管理。远程同步交给 Git、feishu-cli 等工具，技能本身不联网。</p>
+    </div>
+    <div class="two-col">
+      <div>
+        <h3>目录结构</h3>
+        <div class="code-block">
+          <pre>journals/
+├── journal-config.json
+├── index/
+│   └── {USERNAME}-YYYY-MM.json
+└── YYYY-MM/
+    └── {USERNAME}-YYYY-MM-DD.md</pre>
+        </div>
+      </div>
+      <div>
+        <h3>配置参数</h3>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>参数</th><th>说明</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>USERNAME</code></td><td>日志文件所属用户名，初始化时确认后不建议修改</td></tr>
+              <tr><td><code>JOURNAL_DIR</code></td><td>日志根目录绝对路径，默认 <code>{项目根目录}/journals/</code></td></tr>
+              <tr><td><code>initialized</code></td><td>初始化标记，由流程自动写入</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="why" style="font-size:0.8rem;color:var(--muted);margin-top:14px;">
+          配置位置：<code style="font-family:var(--font-mono);background:var(--code-bg);padding:1px 5px;border-radius:2px;">JOURNAL_DIR/journal-config.json</code>，
+          全局指针 <code style="font-family:var(--font-mono);background:var(--code-bg);padding:1px 5px;border-radius:2px;">~/.iris-journal</code>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">不触发</p>
+      <h2>git 上下文不会误触发</h2>
+      <p>涉及版本控制的对话整体判为提交意图，即使话里带「总结」「变更」「记录」也不写日志。</p>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>用户说的话</th><th>处理</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>git commit -m "fix bug"</code></td><td class="no">按提交操作处理，不归档</td></tr>
+          <tr><td>帮我写今天的提交信息</td><td class="no">生成 commit message，不归档</td></tr>
+          <tr><td>总结这次 PR 的变更</td><td class="no">代码评审上下文，不归档</td></tr>
+          <tr><td>打开昨天的日志看看</td><td class="no">读取已有日志，本技能只写不读</td></tr>
+          <tr><td>导出日志为 PDF</td><td class="no">格式转换超出范围</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">初始化</p>
+      <h2>首次运行，四步完成配置</h2>
+      <p>新会话没有记忆，但配置文件一直躺在磁盘上。技能每次先找配置，找不到才走初始化。</p>
+    </div>
+    <div class="steps">
+      <article class="step">
+        <span class="tag">S0</span>
+        <h3>定位配置</h3>
+        <p>先读全局指针 <code>~/.iris-journal</code>，再探测 <code>{CWD}/journals/journal-config.json</code>。命中即跳过初始化。</p>
+      </article>
+      <article class="step">
+        <span class="tag">S1</span>
+        <h3>确认用户名</h3>
+        <p>从项目 <code>USER.md</code> 或直接询问取得 <code>USERNAME</code>，展示候选值，确认后才写入。</p>
+      </article>
+      <article class="step">
+        <span class="tag">S2</span>
+        <h3>确认目录</h3>
+        <p>默认 <code>{CWD}/journals/</code>，展示绝对路径供确认。目录已有文件时询问合并还是换路径。</p>
+      </article>
+      <article class="step">
+        <span class="tag">S3</span>
+        <h3>写入并验证</h3>
+        <p>校验字段、创建目录、写 config 与全局指针，再按模板生成当月索引文件。</p>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">边界</p>
+      <h2>它只做一件事</h2>
+      <p>范围收得窄，行为才可预期。需要读取、汇总、转换时，用别的工具。</p>
+    </div>
+    <ul class="limits">
+      <li><b>只写不读</b><span>不提供历史日志检索或浏览</span></li>
+      <li><b>只记当次会话</b><span>不做跨天、跨会话的汇总报告</span></li>
+      <li><b>不做格式转换</b><span>不导出 PDF、Excel 等格式</span></li>
+      <li><b>不自动定时</b><span>归档始终由你主动触发</span></li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>iris-journal · Claude Code Skill</span>
+    <a href="https://github.com/Haorran/iris-journal">github.com/Haorran/iris-journal</a>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    document.querySelectorAll("[data-copy]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var el = document.getElementById(btn.getAttribute("data-copy"));
+        if (!el) return;
+        var text = el.textContent.trim();
+        var original = btn.textContent;
+
+        function restore() {
+          setTimeout(function () { btn.textContent = original; }, 1600);
+        }
+        function selectFallback() {
+          try {
+            var range = document.createRange();
+            range.selectNodeContents(el);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+          } catch (e) {}
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+            btn.textContent = "已复制";
+            restore();
+          }, function () {
+            selectFallback();
+            btn.textContent = "已选中";
+            restore();
+          });
+        } else {
+          selectFallback();
+          btn.textContent = "已选中";
+          restore();
+        }
+      });
+    });
+  })();
+</script>
